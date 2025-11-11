@@ -95,5 +95,43 @@ namespace todo.controller
                 }
             });
         }
+
+        //User修改特定todo內容
+        [HttpPatch("{Userid}")]
+        public ActionResult<PatchTodoDto> PatchTodo([FromRoute]string Userid , [FromBody] PatchTodoDto PatchTodoDto)
+        {
+            int intUserid;
+            if (!int.TryParse(Userid, out intUserid))
+            {
+                return BadRequest(new { Message = "使用者ID格式錯誤" });
+            }
+            if (!_todoListContext.User.Any(u => u.Id == intUserid))
+            {
+                return NotFound(new { Message = $"使用者ID:{Userid}不存在" });
+            }
+            if (!_todoListContext.Todo.Any(t=>t.Id ==PatchTodoDto.Id && t.UserId == intUserid))
+            {
+                return NotFound(new { Message = $"待辦事項ID:{PatchTodoDto.Id}不存在" });
+            }
+            var todo = _todoListContext.Todo
+                .First(t => t.Id == PatchTodoDto.Id && t.UserId == intUserid&& t.DeleteAt == null&& t.FinishAt == null);
+
+            todo.Title = PatchTodoDto.Title;
+            todo.Descript = PatchTodoDto.Descript;
+            todo.UpdateAt = DateTime.Now;
+
+            _todoListContext.SaveChanges();
+                
+            return Ok(new
+            {
+                PatchTodoDto = new PatchTodoDto
+                {
+                    Id = todo.Id,
+                    Title = todo.Title,
+                    Descript = todo.Descript,
+                    UpdateAt = todo.UpdateAt
+                }
+            });
+        }
     }
 }
