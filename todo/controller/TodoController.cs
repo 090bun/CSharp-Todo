@@ -52,5 +52,48 @@ namespace todo.controller
             return Ok(todos);
         }
 
+
+        //User新增todo的項目
+        [HttpPost("{Userid}")]
+        public ActionResult<TodoDto> CreateTodo([FromRoute] string Userid , [FromBody] TodoDto todoDto)
+        {
+            int intUserid;
+            if (!int.TryParse(Userid, out intUserid))
+            {
+                return BadRequest(new { Message = "使用者ID格式錯誤" });
+            }
+            if (!_todoListContext.User.Any(u => u.Id == intUserid))
+            {
+                return NotFound(new { Message = $"使用者ID:{intUserid}不存在" });
+            }
+
+            var todo = new Models.Todo
+            {
+                Title = todoDto.Title,
+                Descript = todoDto.Descript,
+                UserId = intUserid,
+                CreateAt = DateTime.Now,
+                UpdateAt = DateTime.Now,
+                FinishAt = null,
+                DeleteAt = null
+            };
+
+            _todoListContext.Todo.Add(todo);
+            _todoListContext.SaveChanges();
+            return CreatedAtAction(nameof(CreateTodo), new
+            {
+                TodoDto = new DTOs.TodoDto
+                {
+                    Id = todo.Id,
+                    Title = todo.Title,
+                    Descript = todo.Descript,
+                    CreateAt = todo.CreateAt,
+                    UpdateAt = todo.UpdateAt,
+                    FinishAt = todo.FinishAt,
+                    DeleteAt = todo.DeleteAt,
+                    UserId = intUserid
+                }
+            });
+        }
     }
 }
