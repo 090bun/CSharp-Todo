@@ -37,7 +37,7 @@ namespace todo.Migrations
                     b.Property<DateTime?>("DeleteAt")
                         .HasColumnType("datetime");
 
-                    b.Property<string>("Descript")
+                    b.Property<string>("Description")
                         .IsRequired()
                         .HasMaxLength(250)
                         .HasColumnType("nvarchar(250)");

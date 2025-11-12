@@ -54,13 +54,13 @@ namespace todo.Models
                         new Todo
                         {
                             Title = "Buy groceries",
-                            Descript = "Milk, Bread, Eggs",
+                            Description = "Milk, Bread, Eggs",
                             UserId = firstUser.Id
                         },
                         new Todo
                         {
                             Title = "Walk the dog",
-                            Descript = "Evening walk in the park",
+                            Description = "Evening walk in the park",
                             UserId = lastUser.Id
                         }
                     );

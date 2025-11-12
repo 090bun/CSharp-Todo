@@ -1,9 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using todo.DTOs;
+using todo.Dtos;
+using todo.Services.Validation;
+using todo.Services.Responses;
+using Microsoft.EntityFrameworkCore;
 
 namespace todo.controller
 {
@@ -12,126 +16,122 @@ namespace todo.controller
     public class TodoController : ControllerBase
     {
         private readonly Models.TodoListContext _todoListContext;
-
-        public TodoController(Models.TodoListContext TodoListContext)
+        private readonly IUserIdValidationService _userIdValidationService;
+        public TodoController(Models.TodoListContext TodoListContext , IUserIdValidationService userIdValidationService)
         {
             _todoListContext = TodoListContext;
+            _userIdValidationService = userIdValidationService;
         }
 
         //查詢User所有todo的項目
         [HttpGet("{Userid}")]
-        public ActionResult<List<TodoDto>> GetTodos(string Userid)
+        public ActionResult? GetTodos(string Userid)
         {
-            int intUserid;
-            if (!int.TryParse(Userid, out intUserid))
+            if (!_userIdValidationService.TryValidateUserId(Userid, out int intUserid, out var errorResult))
             {
-                return BadRequest(new { Message = "使用者ID格式錯誤" });
+                return errorResult;
             }
 
-            if (!_todoListContext.User.Any(u => u.Id == intUserid))
+            var query = _todoListContext.Todo
+            .AsNoTracking()
+            .Where(t => t.UserId == intUserid);
+            
+            if (!query.Any())
             {
-                return NotFound(new { Message = $"未搜尋到使用者ID:{intUserid}資料" });
+                return NotFound(new ErrorResponse($"查無此使用者的待辦事項"));
             }
-            var todos = _todoListContext.Todo
-                .Where(t => t.UserId == intUserid)
-                .Select(t => new DTOs.TodoDto
-                {
-                    Id = t.Id,
-                    Title = t.Title,
-                    Descript = t.Descript,
-                    CreateAt = t.CreateAt,
-                    UpdateAt = t.UpdateAt,
-                    FinishAt = t.FinishAt,
-                    DeleteAt = t.DeleteAt,
-                    UserId = intUserid
-                }).ToList();
-            if (todos.Count == 0)
-            {
-                return NotFound(new { Message = $"未搜尋到ID:{intUserid}資料" });
-            }
-            return Ok(todos);
+
+            var todos = query
+                .Select(t => TodoExtensions.FromModel(t))
+                .ToList();
+    
+            return Ok(new ApiResponse<List<TodoDto>>(todos,"查詢成功"));
         }
 
 
         //User新增todo的項目
         [HttpPost("{Userid}")]
-        public ActionResult<TodoDto> CreateTodo([FromRoute] string Userid , [FromBody] TodoDto todoDto)
+        public ActionResult? CreateTodo([FromRoute] string Userid, [FromBody] TodoDto todoDto)
         {
-            int intUserid;
-            if (!int.TryParse(Userid, out intUserid))
+             if (!_userIdValidationService.TryValidateUserId(Userid, out int intUserid, out var errorResult))
             {
-                return BadRequest(new { Message = "使用者ID格式錯誤" });
-            }
-            if (!_todoListContext.User.Any(u => u.Id == intUserid))
-            {
-                return NotFound(new { Message = $"使用者ID:{intUserid}不存在" });
+                return errorResult;
             }
 
-            var todo = new Models.Todo
-            {
-                Title = todoDto.Title,
-                Descript = todoDto.Descript,
-                UserId = intUserid,
-                CreateAt = DateTime.Now,
-                UpdateAt = DateTime.Now,
-                FinishAt = null,
-                DeleteAt = null
-            };
-
+            var todo = TodoExtensions.ToModel(todoDto);
+            todo.UserId = intUserid;
+            
             _todoListContext.Todo.Add(todo);
-            _todoListContext.SaveChanges();
-            return CreatedAtAction(nameof(CreateTodo), new
-            {
-                TodoDto = new DTOs.TodoDto
-                {
-                    Id = todo.Id,
-                    Title = todo.Title,
-                    Descript = todo.Descript,
-                    CreateAt = todo.CreateAt,
-                    UpdateAt = todo.UpdateAt,
-                    FinishAt = todo.FinishAt,
-                    DeleteAt = todo.DeleteAt,
-                    UserId = intUserid
-                }
-            });
+            _todoListContext.SaveChanges(); 
+
+            var resultTodo = TodoExtensions.FromModel(todo);
+            return CreatedAtAction(nameof(CreateTodo), new ApiResponse<TodoDto>(resultTodo, "新增成功"));
         }
 
         //User修改特定todo內容
         [HttpPatch("{Userid}")]
-        public ActionResult<PatchTodoDto> PatchTodo([FromRoute]string Userid , [FromBody] PatchTodoDto PatchTodoDto)
+        public ActionResult? PatchTodo([FromRoute] string Userid, [FromBody] PatchTodoDto PatchTodoDto)
         {
-            int intUserid;
-            if (!int.TryParse(Userid, out intUserid))
+            if (!_userIdValidationService.TryValidateUserId(Userid, out int intUserid, out var errorResult))
             {
-                return BadRequest(new { Message = "使用者ID格式錯誤" });
+                return errorResult;
             }
-            if (!_todoListContext.User.Any(u => u.Id == intUserid))
-            {
-                return NotFound(new { Message = $"使用者ID:{Userid}不存在" });
-            }
-            if (!_todoListContext.Todo.Any(t=>t.Id ==PatchTodoDto.Id && t.UserId == intUserid))
-            {
-                return NotFound(new { Message = $"待辦事項ID:{PatchTodoDto.Id}不存在" });
-            }
-            var todo = _todoListContext.Todo
-                .First(t => t.Id == PatchTodoDto.Id && t.UserId == intUserid&& t.DeleteAt == null&& t.FinishAt == null);
 
-            todo.Title = PatchTodoDto.Title;
-            todo.Descript = PatchTodoDto.Descript;
-            todo.UpdateAt = DateTime.Now;
-
+            var todo = _todoListContext.Todo.FirstOrDefault(t=>t.Id == PatchTodoDto.Id && t.UserId == intUserid && t.DeleteAt == null);
+            if (todo == null)
+            {
+                return NotFound(new ErrorResponse(){Message = $"待辦事項ID:{PatchTodoDto.Id}不存在"});
+            }
+            todo.ToModel(PatchTodoDto);
+            
             _todoListContext.SaveChanges();
-                
-            return Ok(new
+
+            var result = PatchTodoExtenstions.FromModel(todo);
+            return Ok(new ApiResponse<PatchTodoDto>(result, "修改成功"));
+        }
+
+
+        //User刪除特定todo
+        [HttpDelete("{Userid}")]
+        public ActionResult? DeleteTodo([FromRoute] string Userid, [FromBody] DeleteTodoDto DeleteTodoDto)
+        {
+             if (!_userIdValidationService.TryValidateUserId(Userid, out int intUserid, out var errorResult))
             {
-                PatchTodoDto = new PatchTodoDto
-                {
-                    Id = todo.Id,
-                    Title = todo.Title,
-                    Descript = todo.Descript,
-                    UpdateAt = todo.UpdateAt
-                }
-            });
+                return errorResult;
+            }
+
+            var todo = _todoListContext.Todo.FirstOrDefault(t=>t.Id==DeleteTodoDto.Id && t.UserId==intUserid && t.DeleteAt==null);
+            if (todo == null)
+            {
+                return NotFound(new ErrorResponse(){ Message = $"待辦事項ID:{DeleteTodoDto.Id}不存在" });
+            }
+
+            todo.ToModel(DeleteTodoDto);
+            _todoListContext.SaveChanges();
+            return Ok(new ApiResponse<DeleteTodoDto>(DeleteTodoDto, "刪除成功"));
+        }
+        
+    
+        //User完成特定todo
+        [HttpPatch("finish/{Userid}")]
+        public ActionResult? FinishTodo([FromRoute]string Userid,[FromBody] FinishTodoDto FinishTodoDto)
+        {
+            if (!_userIdValidationService.TryValidateUserId(Userid, out int intUserid, out var errorResult))
+            {
+                return errorResult;
+            }
+            
+            var todo = _todoListContext.Todo
+                .FirstOrDefault(t => t.Id == FinishTodoDto.Id && t.UserId == intUserid && t.FinishAt == null && t.DeleteAt == null);
+            if (todo==null)
+            {
+                return NotFound(new ErrorResponse($"待辦事項ID:{FinishTodoDto.Id}不存在"));
+            }
+
+
+            todo.ToModel(FinishTodoDto);
+            _todoListContext.SaveChanges();
+            return Ok(new { Message = $"待辦事項ID:{FinishTodoDto.Id}已完成" });
         }
     }
 }

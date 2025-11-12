@@ -1,6 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using todo.Models;
 using DotNetEnv;
+using todo.Services.Validation;
+using Microsoft.AspNetCore.Mvc;
+
 
 var builder = WebApplication.CreateBuilder(args);
 // 自動載入 appsettings.json + appsettings.Development.json 的地方
@@ -9,7 +12,7 @@ Env.Load(".env");
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 builder.Services.AddControllers();
-
+builder.Services.AddScoped<IUserIdValidationService, UserValidationService>();
 //用 env 傳資料
 var Server = Environment.GetEnvironmentVariable("Server");
 var Database = Environment.GetEnvironmentVariable("Database");

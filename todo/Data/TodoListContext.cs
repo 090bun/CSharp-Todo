@@ -18,7 +18,7 @@ namespace todo.Models
             {
                 entity.Property(e => e.Id).HasDefaultValueSql("(newid())");
                 entity.Property(e => e.Title).HasMaxLength(50).IsRequired();
-                entity.Property(e => e.Descript).HasMaxLength(250);
+                entity.Property(e => e.Description).HasMaxLength(250);
                 entity.Property(e => e.CreateAt).HasDefaultValueSql("getdate()").HasColumnType("datetime");
                 entity.Property(e => e.UpdateAt).HasDefaultValueSql("getdate()").HasColumnType("datetime");
 

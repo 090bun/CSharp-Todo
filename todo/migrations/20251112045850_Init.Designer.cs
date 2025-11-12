@@ -12,8 +12,8 @@ using todo.Models;
 namespace todo.Migrations
 {
     [DbContext(typeof(TodoListContext))]
-    [Migration("20251111113211_init")]
-    partial class init
+    [Migration("20251112045850_Init")]
+    partial class Init
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -40,7 +40,7 @@ namespace todo.Migrations
                     b.Property<DateTime?>("DeleteAt")
                         .HasColumnType("datetime");
 
-                    b.Property<string>("Descript")
+                    b.Property<string>("Description")
                         .IsRequired()
                         .HasMaxLength(250)
                         .HasColumnType("nvarchar(250)");
