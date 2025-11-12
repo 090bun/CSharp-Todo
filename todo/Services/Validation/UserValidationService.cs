@@ -27,9 +27,7 @@ namespace todo.Services.Validation
         {
             if (!int.TryParse(UserIdStr, out UsetId))
             {
-                errorResult = new NotFoundObjectResult(
-    new ErrorResponse($"查無此使用者的待辦事項")
-);
+                errorResult = new NotFoundObjectResult(new ErrorResponse($"查無資料"));
                 return false;
             }
             
@@ -37,7 +35,7 @@ namespace todo.Services.Validation
         var userId = UsetId;
         if (!_todoListContext.User.Any(u => u.Id == userId))
         {
-            errorResult = new NotFoundObjectResult(new ErrorResponse($"查無此使用者的待辦事項"));
+            errorResult = new NotFoundObjectResult(new ErrorResponse($"查無資料"));
             return false;
         }
 

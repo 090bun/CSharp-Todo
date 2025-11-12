@@ -26,7 +26,6 @@ var connectionString =
 builder.Services.AddDbContext<TodoListContext>(options =>
     options.UseSqlServer(connectionString));
 
-
 var app = builder.Build();
 
 //Seed 初始資料

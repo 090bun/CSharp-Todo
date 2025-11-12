@@ -13,6 +13,7 @@ namespace todo.Models
 
         public ICollection<Todo> Todos { get; set; } = new List<Todo>();
         public UserInfo UserInfo { get; set; } = null!;
+
     }
     
 }
