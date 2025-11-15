@@ -136,12 +136,12 @@ namespace todo.controller
             foreach(var Item in users)
             {
                 var dto = dtos.First(x=>x.Id == Item.Id);
-                dto.Role = Item.Role;
+                Item.Role = dto.Role;
             }
             _todoListContext.SaveChanges();
 
             var result = users.Select(u=>UserRoleExtenstions.FromModel(u)).ToList();
             return Ok(new ApiResponse<List<UserRolDto>>(result,"修改成功"));
-        }
+        }   
     }
 }
