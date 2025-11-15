@@ -10,9 +10,11 @@ namespace todo.Models
         public int Id { get; set; }
         public string Name { get; set; } = null!;
         public string Password { get; set; } = null!;
-
+        public string Account { get; set; } = null!;
+        public string Role { get; set; } = "User";
+        
         public ICollection<Todo> Todos { get; set; } = new List<Todo>();
-        public UserInfo UserInfo { get; set; } = null!;
+        public UserInfo? UserInfo { get; set; } 
 
     }
     

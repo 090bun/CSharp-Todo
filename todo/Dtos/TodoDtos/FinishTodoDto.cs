@@ -15,7 +15,7 @@ namespace todo.Dtos
     
     public static class FinishTodoExtensions
     {
-        public static void ToModel(this Models.Todo model, FinishTodoDto FinishTodo)
+        public static void ToModel(this Models.Todo model, List<FinishTodoDto> FinishTodo)
         {
             model.Id = model.Id;
             model.UserId = model.UserId;

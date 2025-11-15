@@ -10,8 +10,10 @@ namespace todo.Dtos.UserDtos
 {
     public class UserPostDto
     {
+        public string Account { get; set; } = null!;
+        public string Role { get; set; } = null!;
         public string Name { get; set; } = null!;
-         public string Password { get; set; } = null!;
+        public string Password { get; set; } = null!;
         public UserInfoDto ? UserInfo { get; set; } 
 
     }
@@ -22,6 +24,8 @@ namespace todo.Dtos.UserDtos
         {
             return new User
             {
+                Account = dto.Account,
+                Role = dto.Role,
                 Name = dto.Name,
                 Password = BCrypt.Net.BCrypt.HashPassword(dto.Password),
                 UserInfo = dto.UserInfo == null ? null : new UserInfo

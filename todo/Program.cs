@@ -3,9 +3,31 @@ using todo.Models;
 using DotNetEnv;
 using todo.Services.Validation;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using todo.Services;
 
 
 var builder = WebApplication.CreateBuilder(args);
+//*****************************************************************************************
+
+//測試 user-secrets 儲存敏感資訊
+// Console.WriteLine("JWT SECRET => " + builder.Configuration["Jwt:Key"]);
+// Console.WriteLine("DB => " + builder.Configuration.GetConnectionString("DefaultConnection"));
+
+
+
+//用 env 傳資料
+// var Server = Environment.GetEnvironmentVariable("Server");
+// var Database = Environment.GetEnvironmentVariable("Database");
+// var UserId = Environment.GetEnvironmentVariable("UserId");
+// var Password = Environment.GetEnvironmentVariable("Password");
+// var connectionString =
+//     $"Server={Server};Database={Database};User Id={UserId};Password={Password};TrustServerCertificate=True;";
+
+//*****************************************************************************************
+
 // 自動載入 appsettings.json + appsettings.Development.json 的地方
 Env.Load(".env");
 // Add services to the container.
@@ -13,18 +35,30 @@ Env.Load(".env");
 builder.Services.AddOpenApi();
 builder.Services.AddControllers();
 builder.Services.AddScoped<IUserIdValidationService, UserValidationService>();
-//用 env 傳資料
-var Server = Environment.GetEnvironmentVariable("Server");
-var Database = Environment.GetEnvironmentVariable("Database");
-var UserId = Environment.GetEnvironmentVariable("UserId");
-var Password = Environment.GetEnvironmentVariable("Password");
+builder.Services.AddScoped<JwtService>();
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!)
+            )
+        };
+    });
 
-var connectionString =
-    $"Server={Server};Database={Database};User Id={UserId};Password={Password};TrustServerCertificate=True;";
+
+//*****************************************************************************************
 
 //匯入資料庫連線設定
 builder.Services.AddDbContext<TodoListContext>(options =>
-    options.UseSqlServer(connectionString));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 var app = builder.Build();
 
@@ -63,9 +97,16 @@ app.MapGet("/weatherforecast", () =>
 })
 .WithName("GetWeatherForecast");
 app.MapControllers();
+app.UseAuthentication();
+app.UseAuthorization();
 app.Run();
+
+
 
 record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
 {
     public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
+    
 }
+
+
